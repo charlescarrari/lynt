@@ -1,4 +1,6 @@
 import { LyntOptions, TSLintConfig } from '../types'
+import { existsSync, readFileSync } from 'fs'
+import { join, resolve } from 'path'
 
 /**
  * Get the TSLint config for lynt. Optionally adds extra React rules if the
@@ -8,12 +10,15 @@ import { LyntOptions, TSLintConfig } from '../types'
  * @return An object that is compatible with TSLint's config format.
  */
 function getConfig(options: LyntOptions) {
+  const defaultIgnore: Array<string> = []
+
   let config: TSLintConfig = {
     defaultSeverity: 'error',
     rulesDirectory: ['tslint-microsoft-contrib'],
     linterOptions: {
-      exclude: []
+      exclude: defaultIgnore
     },
+    jsRules: {},
     rules: {
       // TypeScript-specific
       'adjacent-overload-signatures': true,
@@ -110,6 +115,29 @@ function getConfig(options: LyntOptions) {
     config = getReactConfig(config)
   }
 
+  const ignoreFile = '.lyntignore'
+
+  if (existsSync(ignoreFile)) {
+    const ignoreGlobs = readFileSync(ignoreFile, 'utf8').split('\n')
+    config = {
+      ...config,
+      linterOptions: {
+        exclude: normalizeIgnoreGlobs(defaultIgnore.concat(ignoreGlobs))
+      }
+    }
+  }
+
+  if (options.ignore) {
+    config = {
+      ...config,
+      linterOptions: {
+        exclude: normalizeIgnoreGlobs(
+          config.linterOptions.exclude.concat(options.ignore)
+        )
+      }
+    }
+  }
+
   return config
 }
 
@@ -130,6 +158,17 @@ function getReactConfig(config: TSLintConfig): TSLintConfig {
       'react-iframe-missing-sandbox': true
     }
   }
+}
+
+/**
+ * Normalizes the paths for ignore globs because tslint `exclude`s are relative
+ * to where tslint.json is unfortunately.
+ * (node_modules/lynt/lib/tslint/tslint.json)
+ *
+ * @param globs A list of globs to be ignored when running lynt.
+ */
+function normalizeIgnoreGlobs(globs: Array<string>) {
+  return globs.map(glob => resolve(join('..', '..', '..', '..', glob)))
 }
 
 export default getConfig
