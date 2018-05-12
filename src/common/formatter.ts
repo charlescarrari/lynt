@@ -1,7 +1,7 @@
 import table from 'text-table'
 import chalk from 'chalk'
 import stripAnsi from 'strip-ansi'
-import * as TSLint from '../tslint/types'
+import { Results } from '../common/types'
 
 /**
  * Formats a list of errors into a nice looking table. The output is based on
@@ -11,36 +11,15 @@ import * as TSLint from '../tslint/types'
  * @param errors An array of the errors produced by running lynt.
  * @return A formatted "stylish" table display of the errors.
  */
-function format(errors: Array<TSLint.LintError>) {
-  const sortedErrors = errors.sort((a, b) => {
-    if (a.name !== b.name) {
-      return a.name < b.name ? -1 : 1
-    }
-
-    return a.startPosition.position - b.startPosition.position
-  })
-
-  const errorMap: TSLint.ErrorMap = {}
-
-  sortedErrors.forEach(lintErr => {
-    if (errorMap[lintErr.name]) {
-      errorMap[lintErr.name].push(lintErr)
-    } else {
-      errorMap[lintErr.name] = [lintErr]
-    }
-  })
-
-  const entries = Object.entries(errorMap)
+function format(lyntResults: Results) {
   let output = ''
 
-  entries.forEach(([fileName, fileErrors], index) => {
-    output += `${chalk.underline(fileName)}\n`
+  lyntResults.forEach(result => {
+    output += `${chalk.underline(result.filePath)}\n`
 
-    const errorTable = fileErrors.map(error => [
-      chalk.red(
-        `  ${error.startPosition.character}:${error.startPosition.line}`
-      ),
-      error.failure,
+    const errorTable = result.errors.map(error => [
+      chalk.red(`  ${error.line}:${error.column}`),
+      error.message,
       chalk.dim(error.ruleName)
     ])
 
@@ -51,22 +30,16 @@ function format(errors: Array<TSLint.LintError>) {
     output += `${table(errorTable, options)}\n\n`
   })
 
-  const errCount = errors.length
-  const errMessage = `\u2716 ${errCount} lynt ${pluralize('error', errCount)}`
+  const errCount = lyntResults.reduce((sum, curr) => sum + curr.errorCount, 0)
+  let errMessage = `\u2716 ${errCount} lynt error`
+
+  if (errCount > 1) {
+    errMessage += 's'
+  }
+
   output += chalk.bold.red(errMessage)
 
   return output
-}
-
-/**
- * Adds the letter 's' to a word if necessary.
- *
- * @param word The word to pluralize.
- * @param count The count used to decide if its necessary to pluralize.
- * @return The original word with an 's' at the end if it is needed.
- */
-function pluralize(word: string, count: number) {
-  return count > 1 ? `${word}s` : word
 }
 
 export default format

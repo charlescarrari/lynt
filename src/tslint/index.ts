@@ -5,7 +5,7 @@ import { join } from 'path'
 import { writeFileSync, unlinkSync, existsSync, readFileSync } from 'fs'
 import getConfig from './config'
 import format from '../common/formatter'
-import { LintError } from './types'
+import { TSLintError } from './types'
 import { Options, Results } from '../common/types'
 
 /**
@@ -62,13 +62,13 @@ function tslint(paths: Array<string>, options: Options): Results {
     execa.sync('tslint', tslintArgs)
     results = chalk.bold.green('\u2714 No lynt errors')
   } catch (err) {
-    const lintErrors: Array<LintError> = JSON.parse(err.stdout)
-    results = options.json ? lintErrors : format(lintErrors)
+    const lintErrors: Array<TSLintError> = JSON.parse(err.stdout)
+    results = lintErrors
   } finally {
     unlinkSync(configPath)
   }
 
-  return results
+  return results as any
 }
 
 export default tslint

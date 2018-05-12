@@ -13,7 +13,7 @@ interface Config {
   }
 }
 
-interface LintError {
+interface TSLintError {
   startPosition: ErrorPosition
   endPosition: ErrorPosition
   failure: string
@@ -29,7 +29,7 @@ interface ErrorPosition {
 }
 
 interface ErrorMap {
-  [fileName: string]: Array<LintError>
+  [fileName: string]: Array<TSLintError>
 }
 
-export { Config, LintError, ErrorPosition, ErrorMap }
+export { Config, TSLintError, ErrorPosition, ErrorMap }
